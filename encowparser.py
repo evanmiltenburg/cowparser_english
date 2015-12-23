@@ -15,10 +15,18 @@ def split_element_text(element):
     This function does just that, and returns the text as a list of lines."""
     return etree.tostring(element).decode('utf-8').split('\n')
 
+def sentence_data_generator(element):
+    "Generator that takes a sentence element and yields tokens."
+    for line in split_element_text(element):
+        if not line.startswith('<') and not line == '':
+            data = line.split('\t')
+            # Ugly hack because there are some elements with messed up data:
+            if len(data) == 6:
+                yield Token(*data)
+
 def get_sentence_data(element):
     "Takes a sentence element and returns a list of tokens."
-    return [Token(*line.split('\t')) for line in split_element_text(element)
-            if not line.startswith('<') and not line == '']
+    return list(sentence_data_generator(element))
 
 def get_full_sentence_data(element):
     structure = []
