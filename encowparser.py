@@ -55,18 +55,32 @@ def sentence_generator(filename, gzipped=True, structure=False):
     structure: assumes we don't need information about sentence structure.
                change to True to get this info.
     """
+    # Memory usage lowered using:
+    # http://stackoverflow.com/a/12161078/2899924
     source = gzip.GzipFile(filename) if gzipped else filename
     parser = etree.iterparse(source, html=True, events=('start','end',))
     if structure:
         # element.attrib() returns a dictionary with metadata for the sentence.
         # get_full_sentence_data() returns the structure and a list of tokens
-        return ((element.attrib, get_full_sentence_data(element))
-                for event, element in parser if event=='start' and element.tag == 's')
+        for event, element in parser:
+            if event=='start' and element.tag == 's':
+                yield (element.attrib, get_full_sentence_data(element))
+                element.clear()
+                for ancestor in element.xpath('ancestor-or-self::*'):
+                    while ancestor.getprevious() is not None:
+                        del ancestor.getparent()[0]
     else:
         # element.attrib() returns a dictionary with metadata for the sentence.
         # get_sentence_data() returns a list of tokens
-        return ((element.attrib, get_sentence_data(element))
-                for event, element in parser if event=='start' and element.tag == 's')
+        for event, element in parser:
+            if event=='start' and element.tag == 's':
+                yield (element.attrib, get_sentence_data(element))
+                element.clear()
+                for ancestor in element.xpath('ancestor-or-self::*'):
+                    while ancestor.getprevious() is not None:
+                        del ancestor.getparent()[0]
+    # Aggressively keep memory load down
+    del parser
 
 def separate(list_of_tokens):
     return list(zip(*list_of_tokens))
