@@ -58,12 +58,12 @@ def sentence_generator(filename, gzipped=True, structure=False):
     # Memory usage lowered using:
     # http://stackoverflow.com/a/12161078/2899924
     source = gzip.GzipFile(filename) if gzipped else filename
-    parser = etree.iterparse(source, html=True, events=('start','end',))
+    parser = etree.iterparse(source, html=True, events=('start',))
     if structure:
         # element.attrib() returns a dictionary with metadata for the sentence.
         # get_full_sentence_data() returns the structure and a list of tokens
         for event, element in parser:
-            if event=='start' and element.tag == 's':
+            if element.tag == 's':
                 yield (element.attrib, get_full_sentence_data(element))
                 element.clear()
                 for ancestor in element.xpath('ancestor-or-self::*'):
@@ -73,7 +73,7 @@ def sentence_generator(filename, gzipped=True, structure=False):
         # element.attrib() returns a dictionary with metadata for the sentence.
         # get_sentence_data() returns a list of tokens
         for event, element in parser:
-            if event=='start' and element.tag == 's':
+            if element.tag == 's':
                 yield (element.attrib, get_sentence_data(element))
                 element.clear()
                 for ancestor in element.xpath('ancestor-or-self::*'):
