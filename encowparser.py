@@ -46,6 +46,16 @@ def get_full_sentence_data(element):
                 tokens.append(Token(*data))
     return (structure, tokens)
 
+def clear_references(element):
+    """
+    Lower memory by clearing references to elements we won't need
+    anymore. See also the answer at: http://stackoverflow.com/a/12161078/2899924
+    """
+    element.clear()
+    for ancestor in element.xpath('ancestor-or-self::*'):
+        while ancestor.getprevious() is not None:
+            del ancestor.getparent()[0]
+
 def sentence_generator(filename, gzipped=True, structure=False):
     """Returns metadata, optionally the sentence structure, and the sentence itself.
     Each sentence is represented as a list of Token objects. Tokens are named tuples,
@@ -67,14 +77,10 @@ def sentence_generator(filename, gzipped=True, structure=False):
         if event == 'start':
             # element.attrib() returns a dictionary with metadata for the sentence.
             yield (element.attrib, data_func(element))
+            opening_element = element
         elif event == 'end':
-            # Lower memory by clearing references to the element. We won't need
-            # it anymore anyway. See also the answer at:
-            # http://stackoverflow.com/a/12161078/2899924
-            element.clear()
-            for ancestor in element.xpath('ancestor-or-self::*'):
-                while ancestor.getprevious() is not None:
-                    del ancestor.getparent()[0]
+            clear_references(opening_element)
+            clear_references(element)
     # Aggressively keep memory load down
     del parser
 
