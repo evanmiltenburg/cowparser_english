@@ -55,34 +55,26 @@ def sentence_generator(filename, gzipped=True, structure=False):
     structure: assumes we don't need information about sentence structure.
                change to True to get this info.
     """
-    # Memory usage lowered using:
-    # http://stackoverflow.com/a/12161078/2899924
     source = gzip.GzipFile(filename) if gzipped else filename
     parser = etree.iterparse(source, html=True, events=('start','end',), tag='s')
-    if structure:
-        # element.attrib() returns a dictionary with metadata for the sentence.
-        # get_full_sentence_data() returns the structure and a list of tokens
-        for event, element in parser:
-            if event == 'start':
-                yield (element.attrib, get_full_sentence_data(element))
-            elif event == 'end':
-                element.clear()
-                for ancestor in element.xpath('ancestor-or-self::*'):
-                    while ancestor.getprevious() is not None:
-                        del ancestor.getparent()[0]
-    else:
-        # element.attrib() returns a dictionary with metadata for the sentence.
-        # get_sentence_data() returns a list of tokens
-        for event, element in parser:
-            if event == 'start':
-                yield (element.attrib, get_sentence_data(element))
-            elif event == 'end':
-                element.clear()
-                for ancestor in element.xpath('ancestor-or-self::*'):
-                    while ancestor.getprevious() is not None:
-                        del ancestor.getparent()[0]
+    # get_full_sentence_data() returns the structure and a list of tokens
+    # get_sentence_data() returns a list of tokens
+    data_func = get_full_sentence_data if structure else get_sentence_data
+    for event, element in parser:
+        if event == 'start':
+            # element.attrib() returns a dictionary with metadata for the sentence.
+            yield (element.attrib, data_func(element))
+        elif event == 'end':
+            # Lower memory by clearing references to the element. We won't need
+            # it anymore anyway. See also the answer at:
+            # http://stackoverflow.com/a/12161078/2899924
+            element.clear()
+            for ancestor in element.xpath('ancestor-or-self::*'):
+                while ancestor.getprevious() is not None:
+                    del ancestor.getparent()[0]
     # Aggressively keep memory load down
     del parser
+
 
 def separate(list_of_tokens):
     return list(zip(*list_of_tokens))
