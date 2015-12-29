@@ -58,25 +58,29 @@ def sentence_generator(filename, gzipped=True, structure=False):
     # Memory usage lowered using:
     # http://stackoverflow.com/a/12161078/2899924
     source = gzip.GzipFile(filename) if gzipped else filename
-    parser = etree.iterparse(source, html=True, events=('start',), tag='s')
+    parser = etree.iterparse(source, html=True, events=('start','end',), tag='s')
     if structure:
         # element.attrib() returns a dictionary with metadata for the sentence.
         # get_full_sentence_data() returns the structure and a list of tokens
         for event, element in parser:
-            yield (element.attrib, get_full_sentence_data(element))
-            element.clear()
-            for ancestor in element.xpath('ancestor-or-self::*'):
-                while ancestor.getprevious() is not None:
-                    del ancestor.getparent()[0]
+            if event == 'start':
+                yield (element.attrib, get_full_sentence_data(element))
+            elif event == 'end':
+                element.clear()
+                for ancestor in element.xpath('ancestor-or-self::*'):
+                    while ancestor.getprevious() is not None:
+                        del ancestor.getparent()[0]
     else:
         # element.attrib() returns a dictionary with metadata for the sentence.
         # get_sentence_data() returns a list of tokens
         for event, element in parser:
-            yield (element.attrib, get_sentence_data(element))
-            element.clear()
-            for ancestor in element.xpath('ancestor-or-self::*'):
-                while ancestor.getprevious() is not None:
-                    del ancestor.getparent()[0]
+            if event == 'start':
+                yield (element.attrib, get_sentence_data(element))
+            elif event == 'end':
+                element.clear()
+                for ancestor in element.xpath('ancestor-or-self::*'):
+                    while ancestor.getprevious() is not None:
+                        del ancestor.getparent()[0]
     # Aggressively keep memory load down
     del parser
 
