@@ -33,14 +33,17 @@ def get_full_sentence_data(element):
     tokens    = []
     for line in split_element_text(element):
         if line.startswith('<s') or line.startswith('</s'):
-            pass
+            continue
         elif line.startswith('</'):
             structure.append(line[2:-1] + '_close')
         elif line.startswith('<'):
             structure.append(line[1:-1] + '_open')
         elif not line == '':
-            structure.append(line.split('\t')[3])
-            tokens.append(Token(*line.split('\t')))
+            data = line.split('\t')
+            # Ugly hack because there are some elements with messed up data:
+            if len(data) == 6:
+                structure.append(data[3])
+                tokens.append(Token(*data))
     return (structure, tokens)
 
 def sentence_generator(filename, gzipped=True, structure=False):
